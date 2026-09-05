@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Minecraft Skin Viewer</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: white;
+}
+
+#app {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* =========================
+   HEADER
+========================= */
+
+header {
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #181818;
+    border-bottom: 1px solid #303030;
+    z-index: 10;
+}
+
+header h1 {
+    font-size: 22px;
+    letter-spacing: 1px;
+}
+
+/* =========================
+   SKIN SELECTOR
+========================= */
+
+#skinSelector {
+    height: 75px;
+    background: #151515;
+    border-bottom: 1px solid #303030;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+
+    padding: 10px;
+    z-index: 10;
+}
+
+.skinButton {
+    width: 55px;
+    height: 55px;
+
+    border: 2px solid #444;
+    background: #222;
+
+    cursor: pointer;
+    overflow: hidden;
+
+    transition: 0.15s;
+}
+
+.skinButton:hover {
+    border-color: white;
+    transform: translateY(-2px);
+}
+
+.skinButton.active {
+    border-color: #4da6ff;
+    box-shadow: 0 0 10px rgba(77,166,255,0.5);
+}
+
+.skinButton img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+/* =========================
+   VIEWER
+========================= */
+
+#viewer {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    background:
+        radial-gradient(circle at center, #292929 0%, #151515 55%, #0d0d0d 100%);
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* =========================
+   CONTROLS
+========================= */
+
+#controls {
+    position: absolute;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%);
+
+    display: flex;
+    gap: 8px;
+
+    background: rgba(20,20,20,0.9);
+    border: 1px solid #444;
+    border-radius: 10px;
+
+    padding: 8px;
+}
+
+.controlButton {
+    border: 0;
+    background: #292929;
+    color: white;
+
+    padding: 10px 15px;
+    border-radius: 7px;
+
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.controlButton:hover {
+    background: #3b3b3b;
+}
+
+/* =========================
+   INFO
+========================= */
+
+#info {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+
+    background: rgba(20,20,20,0.8);
+    border: 1px solid #333;
+
+    padding: 10px 14px;
+    border-radius: 8px;
+
+    font-size: 13px;
+    color: #ccc;
+}
+
+#loading {
+    position: absolute;
+    inset: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    pointer-events: none;
+
+    font-size: 18px;
+    color: #aaa;
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 600px) {
+
+    header {
+        height: 55px;
+    }
+
+    header h1 {
+        font-size: 18px;
+    }
+
+    #skinSelector {
+        height: 65px;
+        gap: 6px;
+    }
+
+    .skinButton {
+        width: 48px;
+        height: 48px;
+    }
+
+    #controls {
+        bottom: 12px;
+    }
+
+    .controlButton {
+        padding: 9px 11px;
+        font-size: 12px;
+    }
+
+    #info {
+        font-size: 11px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+    <header>
+        <h1>🧱 Minecraft Skin Viewer</h1>
+    </header>
+
+    <div id="skinSelector">
+
+        <button class="skinButton active" data-skin="skin1.png">
+            <img src="skin1.png">
+        </button>
+
+        <button class="skinButton" data-skin="skin2.png">
+            <img src="skin2.png">
+        </button>
+
+        <button class="skinButton" data-skin="skin3.png">
+            <img src="skin3.png">
+        </button>
+
+        <button class="skinButton" data-skin="skin4.png">
+            <img src="skin4.png">
+        </button>
+
+        <button class="skinButton" data-skin="skin5.png">
+            <img src="skin5.png">
+        </button>
+
+        <button class="skinButton" data-skin="skin6.png">
+            <img src="skin6.png">
+        </button>
+
+        <button class="skinButton" data-skin="skin7.png">
+            <img src="skin7.png">
+        </button>
+
+    </div>
+
+    <div id="viewer">
+
+        <div id="info">
+            Drag to rotate • Scroll to zoom
+        </div>
+
+        <div id="loading">
+            Loading skin...
+        </div>
+
+        <div id="controls">
+            <button class="controlButton" id="frontButton">
+                Front
+            </button>
+
+            <button class="controlButton" id="backButton">
+                Back
+            </button>
+
+            <button class="controlButton" id="resetButton">
+                Reset
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- THREE.JS -->
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+<script>
+/* =========================================================
+   MINECRAFT SKIN VIEWER
+========================================================= */
+
+
+/* =========================================================
+   SETTINGS
+========================================================= */
+
+const SKINS = [
+    "skin1.png",
+    "skin2.png",
+    "skin3.png",
+    "skin4.png",
+    "skin5.png",
+    "skin6.png",
+    "skin7.png"
+];
+
+let currentSkin = SKINS[0];
+
+let scene;
+let camera;
+let renderer;
+
+let playerModel = null;
+
+let mouseDown = false;
+
+let previousMouseX = 0;
+let previousMouseY = 0;
+
+let rotationY = 0;
+let rotationX = 0;
+
+let cameraDistance = 7;
+
+
+/* =========================================================
+   INITIALIZE THREE.JS
+========================================================= */
+
+function init() {
+
+    const viewer = document.getElementById("viewer");
+
+    scene = new THREE.Scene();
+
+    scene.background = new THREE.Color(0x111111);
+
+
+    /* CAMERA */
+
+    camera = new THREE.PerspectiveCamera(
+        45,
+        viewer.clientWidth / viewer.clientHeight,
+        0.1,
+        100
+    );
+
+    camera.position.set(
+        0,
+        1.5,
+        cameraDistance
+    );
+
+
+    /* RENDERER */
+
+    renderer = new THREE.WebGLRenderer({
+        antialias: true
+    });
+
+    renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio, 2)
+    );
+
+    renderer.setSize(
+        viewer.clientWidth,
+        viewer.clientHeight
+    );
+
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    viewer.appendChild(renderer.domElement);
+
+
+    /* LIGHTING */
+
+    const ambientLight = new THREE.AmbientLight(
+        0xffffff,
+        2
+    );
+
+    scene.add(ambientLight);
+
+
+    const directionalLight = new THREE.DirectionalLight(
+        0xffffff,
+        3
+    );
+
+    directionalLight.position.set(
+        5,
+        10,
+        7
+    );
+
+    scene.add(directionalLight);
+
+
+    const fillLight = new THREE.DirectionalLight(
+        0xffffff,
+        1
+    );
+
+    fillLight.position.set(
+        -5,
+        4,
+        -5
+    );
+
+    scene.add(fillLight);
+
+
+    /* GROUND */
+
+    const groundGeometry =
+        new THREE.CircleGeometry(3, 64);
+
+    const groundMaterial =
+        new THREE.MeshStandardMaterial({
+            color: 0x222222
+        });
+
+    const ground =
+        new THREE.Mesh(
+            groundGeometry,
+            groundMaterial
+        );
+
+    ground.rotation.x = -Math.PI / 2;
+
+    ground.position.y = -2.6;
+
+    scene.add(ground);
+
+
+    /* LOAD FIRST SKIN */
+
+    loadSkin(currentSkin);
+
+
+    /* EVENTS */
+
+    setupControls();
+
+    window.addEventListener(
+        "resize",
+        resize
+    );
+
+
+    animate();
+}
+
+
+/* =========================================================
+   CREATE SKIN MATERIAL
+========================================================= */
+
+function createSkinMaterial(
+    texture,
+    offsetX,
+    offsetY,
+    width,
+    height
+) {
+
+    const material =
+        new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: true
+        });
+
+    /*
+        Minecraft textures use a 64x64 texture.
+
+        We use texture offsets/repeats so each
+        cube gets the correct area.
+    */
+
+    material.map = texture.clone();
+
+    material.map.needsUpdate = true;
+
+    material.map.wrapS = THREE.ClampToEdgeWrapping;
+    material.map.wrapT = THREE.ClampToEdgeWrapping;
+
+    material.map.repeat.set(
+        width / 64,
+        height / 64
+    );
+
+    material.map.offset.set(
+        offsetX / 64,
+        1 - ((offsetY + height) / 64)
+    );
+
+    return material;
+}
+
+
+/* =========================================================
+   TEXTURE LOADER
+========================================================= */
+
+const textureLoader =
+    new THREE.TextureLoader();
+
+
+function loadTexture(filename) {
+
+    return new Promise((resolve, reject) => {
+
+        textureLoader.load(
+            filename,
+
+            texture => {
+
+                texture.magFilter =
+                    THREE.NearestFilter;
+
+                texture.minFilter =
+                    THREE.NearestFilter;
+
+                texture.colorSpace =
+                    THREE.SRGBColorSpace;
+
+                resolve(texture);
+            },
+
+            undefined,
+
+            error => {
+
+                console.error(
+                    "Could not load:",
+                    filename,
+                    error
+                );
+
+                reject(error);
+            }
+        );
+
+    });
+}
+
+
+/* =========================================================
+   CREATE PLAYER
+========================================================= */
+
+async function loadSkin(filename) {
+
+    const loading =
+        document.getElementById("loading");
+
+    loading.style.display = "flex";
+
+    try {
+
+        const texture =
+            await loadTexture(filename);
+
+
+        /* REMOVE OLD PLAYER */
+
+        if (playerModel) {
+
+            scene.remove(playerModel);
+
+        }
+
+
+        playerModel =
+            createMinecraftPlayer(texture);
+
+
+        scene.add(playerModel);
+
+
+        /* RESET ROTATION */
+
+        rotationY = 0;
+
+        rotationX = 0;
+
+        playerModel.rotation.y = 0;
+
+        playerModel.rotation.x = 0;
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        loading.textContent =
+            "Could not load " + filename;
+
+    }
+
+    loading.style.display = "none";
+}
+
+
+/* =========================================================
+   MINECRAFT PLAYER
+========================================================= */
+
+function createMinecraftPlayer(texture) {
+
+    const player =
+        new THREE.Group();
+
+
+    /*
+        SCALE
+
+        Minecraft dimensions:
+
+        Head: 8 × 8 × 8
+        Body: 8 × 12 × 4
+        Arms: 4 × 12 × 4
+        Legs: 4 × 12 × 4
+    */
+
+    const scale = 0.25;
+
+
+    /* =========================
+       HEAD
+    ========================= */
+
+    const headGeometry =
+        new THREE.BoxGeometry(
+            8 * scale,
+            8 * scale,
+            8 * scale
+        );
+
+
+    const headMaterials =
+        createBoxMaterials(
+            texture,
+            {
+                top:    [8, 0, 8, 8],
+                bottom: [16, 0, 8, 8],
+                left:   [0, 8, 8, 8],
+                front:  [8, 8, 8, 8],
+                right:  [16, 8, 8, 8],
+                back:   [24, 8, 8, 8]
+            }
+        );
+
+
+    const head =
+        new THREE.Mesh(
+            headGeometry,
+            headMaterials
+        );
+
+    head.position.y =
+        2.1;
+
+
+    player.add(head);
+
+
+    /* =========================
+       BODY
+    ========================= */
+
+    const bodyGeometry =
+        new THREE.BoxGeometry(
+            8 * scale,
+            12 * scale,
+            4 * scale
+        );
+
+
+    const bodyMaterials =
+        createBoxMaterials(
+            texture,
+            {
+                top:    [20, 16, 8, 4],
+                bottom: [28, 16, 8, 4],
+                left:   [16, 20, 4, 12],
+                front:  [20, 20, 8, 12],
+                right:  [28, 20, 4, 12],
+                back:   [32, 20, 8, 12]
+            }
+        );
+
+
+    const body =
+        new THREE.Mesh(
+            bodyGeometry,
+            bodyMaterials
+        );
+
+    body.position.y =
+        0.75;
+
+
+    player.add(body);
+
+
+    /* =========================
+       LEFT ARM
+    ========================= */
+
+    const leftArm =
+        createLimb(
+            texture,
+            true
+        );
+
+    leftArm.position.set(
+        -0.75,
+        0.75,
+        0
+    );
+
+    player.add(leftArm);
+
+
+    /* =========================
+       RIGHT ARM
+    ========================= */
+
+    const rightArm =
+        createLimb(
+            texture,
+            false
+        );
+
+    rightArm.position.set(
+        0.75,
+        0.75,
+        0
+    );
+
+    player.add(rightArm);
+
+
+    /* =========================
+       LEFT LEG
+    ========================= */
+
+    const leftLeg =
+        createLeg(
+            texture,
+            true
+        );
+
+    leftLeg.position.set(
+        -0.25,
+        -0.75,
+        0
+    );
+
+    player.add(leftLeg);
+
+
+    /* =========================
+       RIGHT LEG
+    ========================= */
+
+    const rightLeg =
+        createLeg(
+            texture,
+            false
+        );
+
+    rightLeg.position.set(
+        0.25,
+        -0.75,
+        0
+    );
+
+    player.add(rightLeg);
+
+
+    return player;
+}
+
+
+/* =========================================================
+   CREATE BOX MATERIALS
+========================================================= */
+
+function createBoxMaterials(texture, faces) {
+
+    return [
+
+        createSkinMaterial(
+            texture,
+            ...faces.right
+        ),
+
+        createSkinMaterial(
+            texture,
+            ...faces.left
+        ),
+
+        createSkinMaterial(
+            texture,
+            ...faces.top
+        ),
+
+        createSkinMaterial(
+            texture,
+            ...faces.bottom
+        ),
+
+        createSkinMaterial(
+            texture,
+            ...faces.front
+        ),
+
+        createSkinMaterial(
+            texture,
+            ...faces.back
+        )
+
+    ];
+}
+
+
+/* =========================================================
+   CREATE ARM
+========================================================= */
+
+function createLimb(texture, left) {
+
+    const geometry =
+        new THREE.BoxGeometry(
+            4 * 0.25,
+            12 * 0.25,
+            4 * 0.25
+        );
+
+
+    let materials;
+
+
+    if (left) {
+
+        materials =
+            createBoxMaterials(
+                texture,
+                {
+                    top:    [44, 16, 4, 4],
+                    bottom: [48, 16, 4, 4],
+                    left:   [40, 20, 4, 12],
+                    front:  [44, 20, 4, 12],
+                    right:  [48, 20, 4, 12],
+                    back:   [52, 20, 4, 12]
+                }
+            );
+
+    } else {
+
+        materials =
+            createBoxMaterials(
+                texture,
+                {
+                    top:    [44, 16, 4, 4],
+                    bottom: [48, 16, 4, 4],
+                    left:   [40, 20, 4, 12],
+                    front:  [44, 20, 4, 12],
+                    right:  [48, 20, 4, 12],
+                    back:   [52, 20, 4, 12]
+                }
+            );
+
+    }
+
+
+    return new THREE.Mesh(
+        geometry,
+        materials
+    );
+}
+
+
+/* =========================================================
+   CREATE LEG
+========================================================= */
+
+function createLeg(texture, left) {
+
+    const geometry =
+        new THREE.BoxGeometry(
+            4 * 0.25,
+            12 * 0.25,
+            4 * 0.25
+        );
+
+
+    const materials =
+        createBoxMaterials(
+            texture,
+            {
+                top:    [4, 16, 4, 4],
+                bottom: [8, 16, 4, 4],
+                left:   [0, 20, 4, 12],
+                front:  [4, 20, 4, 12],
+                right:  [8, 20, 4, 12],
+                back:   [12, 20, 4, 12]
+            }
+        );
+
+
+    return new THREE.Mesh(
+        geometry,
+        materials
+    );
+}
+
+
+/* =========================================================
+   CONTROLS
+========================================================= */
+
+function setupControls() {
+
+    const canvas =
+        renderer.domElement;
+
+
+    /* MOUSE DOWN */
+
+    canvas.addEventListener(
+        "mousedown",
+        event => {
+
+            mouseDown = true;
+
+            previousMouseX =
+                event.clientX;
+
+            previousMouseY =
+                event.clientY;
+
+        }
+    );
+
+
+    /* MOUSE UP */
+
+    window.addEventListener(
+        "mouseup",
+        () => {
+
+            mouseDown = false;
+
+        }
+    );
+
+
+    /* MOUSE MOVE */
+
+    window.addEventListener(
+        "mousemove",
+        event => {
+
+            if (!mouseDown || !playerModel)
+                return;
+
+
+            const deltaX =
+                event.clientX -
+                previousMouseX;
+
+            const deltaY =
+                event.clientY -
+                previousMouseY;
+
+
+            rotationY +=
+                deltaX * 0.01;
+
+            rotationX +=
+                deltaY * 0.01;
+
+
+            rotationX =
+                Math.max(
+                    -0.8,
+                    Math.min(
+                        0.8,
+                        rotationX
+                    )
+                );
+
+
+            playerModel.rotation.y =
+                rotationY;
+
+            playerModel.rotation.x =
+                rotationX;
+
+
+            previousMouseX =
+                event.clientX;
+
+            previousMouseY =
+                event.clientY;
+
+        }
+    );
+
+
+    /* TOUCH */
+
+    canvas.addEventListener(
+        "touchstart",
+        event => {
+
+            if (event.touches.length !== 1)
+                return;
+
+            mouseDown = true;
+
+            previousMouseX =
+                event.touches[0].clientX;
+
+            previousMouseY =
+                event.touches[0].clientY;
+
+        },
+        { passive: true }
+    );
+
+
+    canvas.addEventListener(
+        "touchmove",
+        event => {
+
+            if (!mouseDown ||
+                event.touches.length !== 1 ||
+                !playerModel)
+                return;
+
+
+            const touch =
+                event.touches[0];
+
+
+            const deltaX =
+                touch.clientX -
+                previousMouseX;
+
+            const deltaY =
+                touch.clientY -
+                previousMouseY;
+
+
+            rotationY +=
+                deltaX * 0.01;
+
+            rotationX +=
+                deltaY * 0.01;
+
+
+            rotationX =
+                Math.max(
+                    -0.8,
+                    Math.min(
+                        0.8,
+                        rotationX
+                    )
+                );
+
+
+            playerModel.rotation.y =
+                rotationY;
+
+            playerModel.rotation.x =
+                rotationX;
+
+
+            previousMouseX =
+                touch.clientX;
+
+            previousMouseY =
+                touch.clientY;
+
+        },
+        { passive: true }
+    );
+
+
+    canvas.addEventListener(
+        "touchend",
+        () => {
+
+            mouseDown = false;
+
+        }
+    );
+
+
+    /* WHEEL ZOOM */
+
+    canvas.addEventListener(
+        "wheel",
+        event => {
+
+            cameraDistance +=
+                event.deltaY * 0.005;
+
+
+            cameraDistance =
+                Math.max(
+                    3.5,
+                    Math.min(
+                        12,
+                        cameraDistance
+                    )
+                );
+
+
+            updateCamera();
+
+        },
+        { passive: true }
+    );
+
+
+    /* BUTTONS */
+
+    document
+        .getElementById("frontButton")
+        .addEventListener(
+            "click",
+            () => {
+
+                rotationY = 0;
+
+                rotationX = 0;
+
+                playerModel.rotation.y = 0;
+                playerModel.rotation.x = 0;
+
+            }
+        );
+
+
+    document
+        .getElementById("backButton")
+        .addEventListener(
+            "click",
+            () => {
+
+                rotationY = Math.PI;
+
+                rotationX = 0;
+
+                playerModel.rotation.y =
+                    Math.PI;
+
+                playerModel.rotation.x =
+                    0;
+
+            }
+        );
+
+
+    document
+        .getElementById("resetButton")
+        .addEventListener(
+            "click",
+            () => {
+
+                rotationY = 0;
+
+                rotationX = 0;
+
+                cameraDistance = 7;
+
+                playerModel.rotation.y = 0;
+                playerModel.rotation.x = 0;
+
+                updateCamera();
+
+            }
+        );
+
+
+    /* SKIN BUTTONS */
+
+    document
+        .querySelectorAll(".skinButton")
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    document
+                        .querySelectorAll(".skinButton")
+                        .forEach(b =>
+                            b.classList.remove("active")
+                        );
+
+                    button.classList.add("active");
+
+                    currentSkin =
+                        button.dataset.skin;
+
+                    loadSkin(currentSkin);
+
+                }
+            );
+
+        });
+}
+
+
+/* =========================================================
+   CAMERA
+========================================================= */
+
+function updateCamera() {
+
+    camera.position.z =
+        cameraDistance;
+
+    camera.lookAt(
+        0,
+        0,
+        0
+    );
+}
+
+
+/* =========================================================
+   RESIZE
+========================================================= */
+
+function resize() {
+
+    const viewer =
+        document.getElementById("viewer");
+
+    camera.aspect =
+        viewer.clientWidth /
+        viewer.clientHeight;
+
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(
+        viewer.clientWidth,
+        viewer.clientHeight
+    );
+}
+
+
+/* =========================================================
+   ANIMATION
+========================================================= */
+
+function animate() {
+
+    requestAnimationFrame(
+        animate
+    );
+
+
+    updateCamera();
+
+
+    renderer.render(
+        scene,
+        camera
+    );
+}
+
+
+/* =========================================================
+   START
+========================================================= */
+
+init();
+
+</script>
+
+</body>
+</html>
